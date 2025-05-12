@@ -6,43 +6,50 @@
 \usage{
 crtDataSimulation(
   ni,
-  ns,
-  np,
   nstreated,
+  np,
+  ns,
   sigma,
   ICC,
-  sigmaPret,
   B0,
-  B1,
   es,
   seed,
-  attritionrates
+  attritionrates,
+  covariates
 )
 }
 \arguments{
 \item{ni}{The number of intervention groups excluding the control group.}
 
-\item{ns}{The total number of schools.}
+\item{nstreated}{The number of schools in each group, including the control group. It should be specified as an integer vector of length ni + 1.}
 
 \item{np}{The number of pupils per school.}
 
-\item{nstreated}{The number of schools in each group, including the control group. It should be specified as an integer vector of length ni + 1.}
+\item{ns}{The total number of schools.}
 
 \item{sigma}{The standard deviation of the individual-level error.}
 
 \item{ICC}{The intra-class correlation coefficient.}
 
-\item{sigmaPret}{The standard deviation of the pretest scores.}
-
 \item{B0}{The intercept of the model.}
-
-\item{B1}{The coefficient for the pretest covariate in the model.}
 
 \item{es}{The standardized effect sizes for each intervention group. It should be specified as a numeric vector.}
 
 \item{seed}{The random seed for reproducibility.}
 
 \item{attritionrates}{The proportion of attrition for each group, including the control group. It should be specified as a numeric vector of length ni + 1.}
+
+\item{covariates}{List of covariate specifications. Each element should be a list with the following fields:
+\describe{
+\item{name}{Character. Name of the covariate.}
+\item{type}{Character. Either \code{"continuous"} or \code{"categorical"}.}
+\item{sd}{Numeric. Standard deviation (only for continuous covariates).}
+\item{coefficient}{Numeric. Coefficient (only for continuous covariates).}
+\item{levels}{Character vector. Category levels (only for categorical covariates).}
+\item{probs}{Numeric vector. Sampling probabilities (must sum to 1) (categorical only).}
+\item{reference}{Character. Reference category (categorical only).}
+\item{coefficients}{Named list of numeric values. Coefficients for each non-reference level.}
+}}
 }
 \value{
 A \code{data.frame} containing:
@@ -50,7 +57,7 @@ A \code{data.frame} containing:
 \item{pupils}{Unique pupil ID}
 \item{schools}{School ID}
 \item{interventions}{Intervention group (0 = control, 1 to \code{ni} for interventions)}
-\item{pretest}{Simulated pretest scores}
+\item{covariates}{Simulated covariates}
 \item{posttest}{Simulated posttest scores (NA if attrited)}
 }
 }
@@ -59,9 +66,17 @@ This function simulates a multiple intervention arms CRT data. The model
 includes intervention and pre-test scores as covariates.
 }
 \examples{
+covariates <- list(
+ list(name = "pretest", type = "continuous", sd = 1, coefficient = 1.7),
+ list(name = "gender", type = "categorical", levels = c("Male", "Female"),
+ probs = c(0.3, 0.7), reference = "Male", coefficients = list(B = -0.5)),
+ list(name = "ethnicity", type = "categorical", levels = c("White", "Black", "Asian"),
+ probs = c(0.3, 0.3, 0.4), reference = "White", coefficients = list(B = 1.02, C = 1.3))
+)
+
 crtdata <- crtDataSimulation(ni = 3, ns = 10, np = 100, nstreated = c(2, 3, 2, 3), 
-sigma = 1, ICC = 0.3, sigmaPret = 1, B0 = 1.45, B1 = 1.7, es = c(0.1, 0.2, 0.5), 
-seed = 1234, attritionrates = c(0, 0.1, 0.2, 0.1))
+sigma = 1, ICC = 0.1, B0 = 1.45, es = c(0.1, 0.2, 0.5), 
+seed = 1234, attritionrates = c(0, 0.1, 0.2, 0.1), covariates = covariates)
 head(crtdata)
 
 }

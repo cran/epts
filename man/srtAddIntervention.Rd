@@ -5,18 +5,19 @@
 \title{Add a New Intervention Group to Simple Randomized Trial (SRT) Data}
 \usage{
 srtAddIntervention(
-  originalData,
+  existing_data,
   np,
   es,
   attritionrate,
   outcome,
   interventions,
   id,
-  covariates
+  continuous_covariates,
+  categorical_covariates
 )
 }
 \arguments{
-\item{originalData}{A data frame containing the variables including outcome, predictors, the clustering variable, and the intervention for CRT design.}
+\item{existing_data}{A data frame containing the variables including outcome, predictors, the clustering variable, and the intervention for CRT design.}
 
 \item{np}{The number of new participants to generate for the new intervention group.}
 
@@ -30,7 +31,9 @@ srtAddIntervention(
 
 \item{id}{A string specifying the name of the participant ID column.}
 
-\item{covariates}{A string vector specifying the names of additional covariates (both categorical and continuous) used in the model.}
+\item{continuous_covariates}{A character vector specifying the names of continuous covariates.}
+
+\item{categorical_covariates}{A character vector specifying the names of categorical covariates (converted to factors).}
 }
 \value{
 A \code{data.frame} combining the original dataset with the newly simulated intervention group.
@@ -41,9 +44,9 @@ new participant-level data.
 }
 \examples{
 data(srt4armSimData)
-new_srt5armData <- srtAddIntervention(originalData = srt4armSimData, np = 100, 
+new_srt5armData <- srtAddIntervention(existing_data = srt4armSimData, np = 100, 
 es = 0.3, attritionrate = 0.1, outcome = "posttest", interventions = "interventions",
-id = "ID", covariates = c("pretest"))
+id = "ID", continuous_covariates = c("pretest"), categorical_covariates = c("gender", "ethnicity"))
 head(new_srt5armData)
 
 }

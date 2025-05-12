@@ -14,7 +14,8 @@ crtAddIntervention(
   interventions,
   schoolsID,
   pupilsID,
-  covariates
+  continuous_covariates,
+  categorical_covariates
 )
 }
 \arguments{
@@ -36,7 +37,9 @@ crtAddIntervention(
 
 \item{pupilsID}{A string specifying the name of the pupil ID column.}
 
-\item{covariates}{A string vector specifying the names of additional covariates (both categorical and continuous) used in the model.}
+\item{continuous_covariates}{A character vector specifying the names of continuous covariates in the model.}
+
+\item{categorical_covariates}{A character vector specifying the names of categorical covariates in the model (converted to factors).}
 }
 \value{
 A \code{data.frame} combining the original and new intervention group, including post-test outcomes
@@ -57,9 +60,10 @@ The function performs the following:
 }
 \examples{
 data(crt4armSimData)
-new_crt5armData <- crtAddIntervention(originalData = crt4armSimData, ns = 2, np = 100, es = 0.3, 
-attritionrate = 0.1, outcome = "posttest", interventions = "interventions", schoolsID = "schools", 
-pupilsID = "pupils", covariates = c("pretest"))
+new_crt5armData <- crtAddIntervention(originalData = crt4armSimData, ns = 2,
+np = 100, es = 0.3, attritionrate = 0.1, outcome = "posttest", interventions = "interventions", 
+schoolsID = "schools", pupilsID = "pupils", 
+continuous_covariates = c("pretest"), categorical_covariates = c("gender", "ethnicity"))
 head(new_crt5armData)
 
 }

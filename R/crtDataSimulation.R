@@ -10,31 +10,49 @@
 #' @param ns The total number of schools.
 #' @param sigma The standard deviation of the individual-level error.
 #' @param ICC The intra-class correlation coefficient.
-#' @param sigmaPret The standard deviation of the pretest scores.
 #' @param B0 The intercept of the model.
-#' @param B1 The coefficient for the pretest covariate in the model.
 #' @param es The standardized effect sizes for each intervention group. It should be specified as a numeric vector.
 #' @param seed The random seed for reproducibility.
 #' @param attritionrates The proportion of attrition for each group, including the control group. It should be specified as a numeric vector of length ni + 1.
+#' @param covariates List of covariate specifications. Each element should be a list with the following fields:
+#'   \describe{
+#'     \item{name}{Character. Name of the covariate.}
+#'     \item{type}{Character. Either \code{"continuous"} or \code{"categorical"}.}
+#'     \item{sd}{Numeric. Standard deviation (only for continuous covariates).}
+#'     \item{coefficient}{Numeric. Coefficient (only for continuous covariates).}
+#'     \item{levels}{Character vector. Category levels (only for categorical covariates).}
+#'     \item{probs}{Numeric vector. Sampling probabilities (must sum to 1) (categorical only).}
+#'     \item{reference}{Character. Reference category (categorical only).}
+#'     \item{coefficients}{Named list of numeric values. Coefficients for each non-reference level.}
+#'   }
 #'
 #' @return A `data.frame` containing:
 #' \describe{
 #'   \item{pupils}{Unique pupil ID}
 #'   \item{schools}{School ID}
 #'   \item{interventions}{Intervention group (0 = control, 1 to `ni` for interventions)}
-#'   \item{pretest}{Simulated pretest scores}
+#'   \item{covariates}{Simulated covariates}
 #'   \item{posttest}{Simulated posttest scores (NA if attrited)}
 #' }
 #'
 #' @examples
+#'covariates <- list(
+#'  list(name = "pretest", type = "continuous", sd = 1, coefficient = 1.7),
+#'  list(name = "gender", type = "categorical", levels = c("Male", "Female"),
+#'  probs = c(0.3, 0.7), reference = "Male", coefficients = list(B = -0.5)),
+#'  list(name = "ethnicity", type = "categorical", levels = c("White", "Black", "Asian"),
+#'  probs = c(0.3, 0.3, 0.4), reference = "White", coefficients = list(B = 1.02, C = 1.3))
+#')
+#'
 #' crtdata <- crtDataSimulation(ni = 3, ns = 10, np = 100, nstreated = c(2, 3, 2, 3), 
-#' sigma = 1, ICC = 0.3, sigmaPret = 1, B0 = 1.45, B1 = 1.7, es = c(0.1, 0.2, 0.5), 
-#' seed = 1234, attritionrates = c(0, 0.1, 0.2, 0.1))
+#' sigma = 1, ICC = 0.1, B0 = 1.45, es = c(0.1, 0.2, 0.5), 
+#' seed = 1234, attritionrates = c(0, 0.1, 0.2, 0.1), covariates = covariates)
 #' head(crtdata)
 #'
 #' @export
 # Define the CRT data simulation function
-crtDataSimulation <- function(ni, ns, np, nstreated, sigma, ICC, sigmaPret, B0, B1, es, seed, attritionrates) {
+crtDataSimulation <- function(ni, nstreated, np, ns, sigma, ICC, B0, es, seed, attritionrates, covariates) {
+  set.seed(seed)
   
   # Error checking
   if (length(nstreated) != ni + 1) {
@@ -46,6 +64,23 @@ crtDataSimulation <- function(ni, ns, np, nstreated, sigma, ICC, sigmaPret, B0, 
   if (length(attritionrates) != ni + 1) {
     stop("Error: The length of attritionrates must be number of interventions + 1 (including control group).")
   }
+  
+  # Validate covariates structure
+  if (!is.list(covariates)) stop("covariates must be a list.")
+  for (cov in covariates) {
+    if (!is.list(cov)) stop("Each covariate must be a list.")
+    if (is.null(cov$name) || is.null(cov$type)) stop("Each covariate must have 'name' and 'type'.")
+    if (cov$type == "continuous") {
+      if (is.null(cov$sd) || is.null(cov$coefficient)) stop("Continuous covariates must have 'sd' and 'effect'.")
+    } else if (cov$type == "categorical") {
+      if (is.null(cov$levels) || is.null(cov$probs) || is.null(cov$reference) || is.null(cov$coefficients)) {
+        stop("Categorical covariates must have 'levels', 'probs', 'reference', and 'coefficients'.")
+      }
+    } else {
+      stop("Covariate type must be either 'continuous' or 'categorical'.")
+    }
+  }
+  
   set.seed(seed)
   
   # Step 1: Create the base data structure with people and schools
@@ -78,9 +113,22 @@ crtDataSimulation <- function(ni, ns, np, nstreated, sigma, ICC, sigmaPret, B0, 
     remaining_schools <- setdiff(remaining_schools, treated_schools)  # Remove assigned schools
   }
   
-  # Step 3: Generate pre-test scores for everyone
-  prets <- "pretest"
-  data[[prets]] <- rnorm(nrow(data), mean = 0, sd = sigmaPret)  # Pre-test scores for everyone
+  # Generate covariates (all individuals, no NA)
+  for (cov in covariates) {
+    if (cov$type == "continuous") {
+      data[[cov$name]] <- rnorm(nrow(data), mean = 0, sd = cov$sd)
+    } else if (cov$type == "categorical") {
+      data[[cov$name]] <- sample(cov$levels, nrow(data), replace = TRUE, prob = cov$probs)
+    }
+  }
+  
+  # Convert categorical covariates to numeric (0 = reference)
+  for (cov in covariates) {
+    if (cov$type == "categorical") {
+      levels_ordered <- c(cov$reference, setdiff(cov$levels, cov$reference))
+      data[[cov$name]] <- match(data[[cov$name]], levels_ordered) - 1
+    }
+  }
   
   # Initialize post-test scores
   posts <- "posttest"
@@ -90,14 +138,12 @@ crtDataSimulation <- function(ni, ns, np, nstreated, sigma, ICC, sigmaPret, B0, 
   non_attrition_idx <- 1:nrow(data)  # Start by assuming no one is attrited
   
   for (i in 0:ni) {
-    group_idx <- which(data[[interventions]] == i)
-    attrition_rate <- attritionrates[i + 1]  # Use i+1 because first value is for control group
-    attrition_size <- round(length(group_idx) * attrition_rate)
-    
-    if (attrition_size > 0) {
-      attrition_idx <- sample(group_idx, attrition_size)
-      data[attrition_idx, posts] <- NA  # Mark attrited participants
-      non_attrition_idx <- setdiff(non_attrition_idx, attrition_idx)  # Update non-attrited participants
+    group_idx <- which(data$interventions == i)
+    drop <- round(length(group_idx) * attritionrates[i + 1])
+    if (drop > 0) {
+      drop_ids <- sample(group_idx, drop)
+      data$posttest[drop_ids] <- NA
+      non_attrition_idx <- setdiff(non_attrition_idx, drop_ids)
     }
   }
   
@@ -115,11 +161,25 @@ crtDataSimulation <- function(ni, ns, np, nstreated, sigma, ICC, sigmaPret, B0, 
   # Calculate the total treatment effect by combining individual treatment effects with corresponding effect sizes
   total_treatment_effect <- rowSums(treatment_effects_sizes)
   
-  # Step 7: Compute post-test scores using the combined formula
-  data[non_attrition_idx, posts] <- B0 + B1 * data[non_attrition_idx, prets] + total_treatment_effect + b_i + e_ij
   
-  # Only keep relevant columns (pupils, schools, interventions, pretest, posttest)
-  data <- data[, c("pupils", "schools", interventions, prets, posts)]
+  cov_effects <- rep(0, nrow(data))
+  if (length(covariates) > 0) {
+    for (cov in covariates) {
+      if (cov$type == "continuous") {
+        cov_effects <- cov_effects + cov$coefficient * data[[cov$name]]
+      } else if (cov$type == "categorical") {
+        for (lvl in cov$levels) {
+          if (lvl != cov$reference) {
+            cov_effects <- cov_effects + ifelse(data[[cov$name]] == lvl, cov$coefficients[[lvl]], 0)
+          }
+        }
+      }
+    }
+  }
+  
+  # Apply only to non-attrited rows
+  # Step 7: Compute post-test scores using the combined formula
+  data[non_attrition_idx, posts] <- B0 + cov_effects[non_attrition_idx] + total_treatment_effect + b_i + e_ij
   
   return(data)
 }

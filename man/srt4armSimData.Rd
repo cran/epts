@@ -5,11 +5,13 @@
 \alias{srt4armSimData}
 \title{Simulated 4-Arm Simple Randomized Trial (SRT) Data}
 \format{
-A data frame with 1,000 rows and 4 variables:
+A data frame with 1,000 rows and 6 variables:
 \describe{
 \item{ID}{Identifier for participants ID}
 \item{interventions}{Treatment assignment coded as 0 for control and 1–3 for intervention groups}
 \item{pretest}{Pre-test scores}
+\item{gender}{Binary gender}
+\item{ethnicity}{Ethnicity (3-level categorical)}
 \item{posttest}{Post-test scores}
 }
 }

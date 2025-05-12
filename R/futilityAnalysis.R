@@ -11,7 +11,8 @@
 #' @param Nsim Number of MCMC iterations to be performed. A minimum of 10,000 is recommended to ensure convergence.
 #' @param Threshold The effect size threshold for posterior computation (default = 0.05).
 #' @param FutThreshold The minimum posterior probability threshold for non-futility (default = 0.8).
-#' @param covariates Additional covariates to include in the model. It should be specified as a character vector.
+#' @param continuous_covariates A character vector specifying the names of continuous covariates.
+#' @param categorical_covariates A character vector specifying the names of categorical covariates (converted to factors).
 #'
 #' @return A `data.frame` with columns:
 #' \itemize{
@@ -32,18 +33,21 @@
 #' data(crt4armSimData)
 #' futilityAnalysis(method = "crt", data = crt4armSimData, outcome = "posttest", 
 #' interventions = "interventions", Random = "schools", Nsim = 10000, 
-#' Threshold = 0.05, FutThreshold = 0.8)
+#' Threshold = 0.05, FutThreshold = 0.8,continuous_covariates = c("pretest"),
+#' categorical_covariates = c("gender", "ethnicity"))
 #'
 #' ###Futility analysis of multisite trial###
 #' data(mst4armSimData)
 #' futilityAnalysis(method = "mst", data = mst4armSimData, outcome = "posttest",
 #' interventions = "interventions", Random = "schools", Nsim = 10000, 
-#' Threshold = 0.05, FutThreshold = 0.8)
+#' Threshold = 0.05, FutThreshold = 0.8,continuous_covariates = c("pretest"),
+#' categorical_covariates = c("gender", "ethnicity"))
 #'
 #' ###Futility analysis of simple randomized trial###
 #' data(srt4armSimData)
 #' futilityAnalysis(method = "srt", data = srt4armSimData, outcome = "posttest",
-#' interventions = "interventions", Nsim = 10000, Threshold = 0.05, FutThreshold = 0.8)
+#' interventions = "interventions", Nsim = 10000, Threshold = 0.05, FutThreshold = 0.8,
+#' continuous_covariates = c("pretest"), categorical_covariates = c("gender", "ethnicity"))
 #'}
 #'
 #' @importFrom eefAnalytics crtBayes mstBayes srtBayes
@@ -56,18 +60,37 @@ futilityAnalysis <- function(method = c("crt", "mst", "srt"),
     Nsim = 10000,
     Threshold = 0.05,
     FutThreshold = 0.8,
-    covariates = NULL) {
+    continuous_covariates = NULL, categorical_covariates = NULL) {
   method <- match.arg(method)
+  
+  # Ensure categorical covariates are factors
+  if (!is.null(categorical_covariates)) {
+    for (cat_var in categorical_covariates) {
+      data[[cat_var]] <- as.factor(data[[cat_var]])
+    }
+  }
+  
+  # Combine covariates AFTER conversion
+  covariates <- c(continuous_covariates, categorical_covariates)
+  
   
   intervention_col <- sort(unique(data[[interventions]][data[[interventions]] != 0]))
   prob_es_values <- numeric(length(intervention_col))
-  futility_decisions <- numeric(length(intervention_col))
+  futility_decisions <- numeric(length(intervention_col))  # Initialize a single futility column
+  
   output <- list()
   
   for (i in seq_along(intervention_col)) {
     intervention <- intervention_col[i]
     intervention_data <- data[data[[interventions]] %in% c(intervention, 0), ]
     intervention_data[[interventions]] <- ifelse(intervention_data[[interventions]] == intervention, 1, 0)
+    
+    # Also ensure factor conversion inside the subset
+    if (!is.null(categorical_covariates)) {
+      for (cat_var in categorical_covariates) {
+        intervention_data[[cat_var]] <- as.factor(intervention_data[[cat_var]])
+      }
+    }
     
     formula_str <- if (is.null(covariates) || length(covariates) == 0) {
       paste(outcome, "~", interventions)

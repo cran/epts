@@ -16,7 +16,8 @@ multiArmAnalysis(
   nPerm = NULL,
   nBoot = NULL,
   bootType = NULL,
-  covariates = NULL,
+  continuous_covariates = NULL,
+  categorical_covariates = NULL,
   maintitle = NULL,
   xlabel = NULL,
   ylabel = NULL,
@@ -56,7 +57,9 @@ multiArmAnalysis(
 
 \item{bootType}{method of bootstrapping including case re-sampling at student level "case(1)",case re-sampling at school level "case(2)", case re-sampling at both levels "case(1,2)" and residual bootstrapping using "residual". If not provided, default will be case re-sampling at student level.}
 
-\item{covariates}{Additional covariates include in the model. It should be specified as a character vector.}
+\item{continuous_covariates}{A character vector specifying the names of continuous covariates.}
+
+\item{categorical_covariates}{A character vector specifying the names of categorical covariates (converted to factors).}
 
 \item{maintitle}{main title for the plot.}
 
@@ -87,7 +90,8 @@ stores the results, and forest plot visualization for easy comparison. It allows
 data(crt4armSimData)
 multiArmAnalysis(method = "crtBayes", data = crt4armSimData, outcome = "posttest", 
 interventions = "interventions", Random = "schools", Nsim = 10000, Threshold = 0.05, 
-covariates = c("pretest"), intlabels = c("Intervention A", "Intervention B", "Intervention C"),
+continuous_covariates = c("pretest"), categorical_covariates = c("gender", "ethnicity"),
+intlabels = c("Intervention A", "Intervention B", "Intervention C"),
 maintitle = "Forest plot of comparison of effect sizes", xlabel = "Hedges'g", 
 ylabel = "Interventions", vlinecolor = "black")
 
@@ -95,7 +99,8 @@ ylabel = "Interventions", vlinecolor = "black")
 data(mst4armSimData)
 multiArmAnalysis(method = "mstFREQ", data = mst4armSimData, outcome = "posttest",
 interventions = "interventions", Random = "schools", nBoot = 1000, bootType="residual",
-covariates = c("pretest"), intlabels = c("Intervention A", "Intervention B", "Intervention C"),
+continuous_covariates = c("pretest"), categorical_covariates = c("gender", "ethnicity"),
+intlabels = c("Intervention A", "Intervention B", "Intervention C"),
 intcolors = c("Intervention A" = "blue", "Intervention B" = "green", "Intervention C" = "red"),
 maintitle = "Forest plot of comparison of effect sizes ", xlabel = "Hedges'g",
 ylabel = "Interventions", vlinecolor = "black")
@@ -103,7 +108,8 @@ ylabel = "Interventions", vlinecolor = "black")
 ###MLM analysis of multisite trials with permutation p-value###
 data(mst4armSimData)
 multiArmAnalysis(method = "mstFREQ", data = mst4armSimData, outcome = "posttest", 
-interventions = "interventions", Random = "schools", nPerm = 1000, covariates = c("pretest"), 
+interventions = "interventions", Random = "schools", nPerm = 1000, 
+continuous_covariates = c("pretest"), categorical_covariates = c("gender", "ethnicity"), 
 intlabels = c("Intervention A", "Intervention B", "Intervention C"),
 intcolors = c("Intervention A" = "blue", "Intervention B" = "green", "Intervention C" = "red"), 
 maintitle = "Forest plot of comparison of effect sizes ",
@@ -114,7 +120,8 @@ xlabel = "Hedges'g", ylabel = "Interventions", vlinecolor = "black")
 data(srt4armSimData)
 multiArmAnalysis(method = "srtBayes", data = srt4armSimData, outcome = "posttest",
 interventions = "interventions", Random = "schools", Nsim = 10000, Threshold = 0.05, 
-covariates = c("pretest"), intlabels = c("Int A", "Int B", "Int C"),
+continuous_covariates = c("pretest"), categorical_covariates = c("gender", "ethnicity"),
+intlabels = c("Int A", "Int B", "Int C"),
 intcolors = c("Int A" = "#1F77B4", "Int B" = "#2CA02C", "Int C" = "#D62728"),
 maintitle = "Forest plot of comparison of effect sizes ", xlabel = "Hedges'g", 
 ylabel = "Interventions", vlinecolor = "black")

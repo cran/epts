@@ -13,7 +13,8 @@ futilityAnalysis(
   Nsim = 10000,
   Threshold = 0.05,
   FutThreshold = 0.8,
-  covariates = NULL
+  continuous_covariates = NULL,
+  categorical_covariates = NULL
 )
 }
 \arguments{
@@ -33,7 +34,9 @@ futilityAnalysis(
 
 \item{FutThreshold}{The minimum posterior probability threshold for non-futility (default = 0.8).}
 
-\item{covariates}{Additional covariates to include in the model. It should be specified as a character vector.}
+\item{continuous_covariates}{A character vector specifying the names of continuous covariates.}
+
+\item{categorical_covariates}{A character vector specifying the names of categorical covariates (converted to factors).}
 }
 \value{
 A \code{data.frame} with columns:
@@ -57,18 +60,21 @@ extracts the posterior probability, and determines futility based on the specifi
 data(crt4armSimData)
 futilityAnalysis(method = "crt", data = crt4armSimData, outcome = "posttest", 
 interventions = "interventions", Random = "schools", Nsim = 10000, 
-Threshold = 0.05, FutThreshold = 0.8)
+Threshold = 0.05, FutThreshold = 0.8,continuous_covariates = c("pretest"),
+categorical_covariates = c("gender", "ethnicity"))
 
 ###Futility analysis of multisite trial###
 data(mst4armSimData)
 futilityAnalysis(method = "mst", data = mst4armSimData, outcome = "posttest",
 interventions = "interventions", Random = "schools", Nsim = 10000, 
-Threshold = 0.05, FutThreshold = 0.8)
+Threshold = 0.05, FutThreshold = 0.8,continuous_covariates = c("pretest"),
+categorical_covariates = c("gender", "ethnicity"))
 
 ###Futility analysis of simple randomized trial###
 data(srt4armSimData)
 futilityAnalysis(method = "srt", data = srt4armSimData, outcome = "posttest",
-interventions = "interventions", Nsim = 10000, Threshold = 0.05, FutThreshold = 0.8)
+interventions = "interventions", Nsim = 10000, Threshold = 0.05, FutThreshold = 0.8,
+continuous_covariates = c("pretest"), categorical_covariates = c("gender", "ethnicity"))
 }
 
 }

@@ -1,7 +1,7 @@
 Package: epts
 Type: Package
 Title: Educational Platform Trials Simulator
-Version: 1.1.4
+Version: 1.2.1
 Authors@R: c(
   person(given = "Mohammad", family = "Sayari", role = c("aut", "cre"),
          email = "md.sayari13@gmail.com"),
@@ -16,7 +16,7 @@ LazyData: true
 Suggests: knitr, rmarkdown, testthat (>= 3.0.0)
 Depends: R (>= 4.3.0)
 Imports: eefAnalytics, lme4, ggplot2, ggpubr, methods, graphics, stats,
-        mvtnorm, coda, MCMCvis
+        mvtnorm, coda, MCMCvis, dplyr, magrittr
 NeedsCompilation: no
 Author: Mohammad Sayari [aut, cre],
   Akansha Singh [aut],
@@ -24,6 +24,6 @@ Author: Mohammad Sayari [aut, cre],
   Jochen Einbeck [aut]
 Maintainer: Mohammad Sayari <md.sayari13@gmail.com>
 Config/testthat/edition: 3
-Packaged: 2025-04-29 10:27:10 UTC; mdsay
+Packaged: 2025-05-12 17:22:54 UTC; mdsay
 Repository: CRAN
-Date/Publication: 2025-05-01 10:30:05 UTC
+Date/Publication: 2025-05-12 17:50:02 UTC

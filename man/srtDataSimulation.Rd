@@ -4,46 +4,43 @@
 \alias{srtDataSimulation}
 \title{Simulate Simple Randomized Trial (SRT) Data}
 \usage{
-srtDataSimulation(
-  ni,
-  np,
-  tpi,
-  sigma,
-  sigmaPret,
-  B0,
-  B1,
-  es,
-  seed,
-  attritionrates
-)
+srtDataSimulation(ni, tpi, np, sigma, B0, es, seed, attritionrates, covariates)
 }
 \arguments{
 \item{ni}{The number of intervention groups excluding the control group.}
 
-\item{np}{The total number of participants.}
-
 \item{tpi}{The proportions (in percent) assigned to each group, with the first value for the control group followed by the intervention groups. Must sum to 100. It should be specified as a numeric vector of length ni + 1.}
+
+\item{np}{The total number of participants.}
 
 \item{sigma}{The standard deviation of individual-level error for the post-test score.}
 
-\item{sigmaPret}{The standard deviation of the pretest scores.}
-
 \item{B0}{The intercept term in the model.}
-
-\item{B1}{The coefficient for the pretest in the model.}
 
 \item{es}{The standardized effect sizes for each intervention group. It should be specified as a numeric vector.}
 
 \item{seed}{The random seed for reproducibility.}
 
 \item{attritionrates}{The attrition rates for each group, including the control group. It should be specified as a numeric vector of length ni + 1.}
+
+\item{covariates}{List of covariate specifications. Each element should be a list with the following fields:
+\describe{
+\item{name}{Character. Name of the covariate.}
+\item{type}{Character. Either \code{"continuous"} or \code{"categorical"}.}
+\item{sd}{Numeric. Standard deviation (only for continuous covariates).}
+\item{coefficient}{Numeric. Coefficient (only for continuous covariates).}
+\item{levels}{Character vector. Category levels (only for categorical covariates).}
+\item{probs}{Numeric vector. Sampling probabilities (must sum to 1) (categorical only).}
+\item{reference}{Character. Reference category (categorical only).}
+\item{coefficients}{Named list of numeric values. Coefficients for each non-reference level.}
+}}
 }
 \value{
 A \code{data.frame} containing:
 \describe{
 \item{ID}{Participant ID}
 \item{interventions}{Intervention assignment (0 = control, 1 to \code{ni} = intervention groups)}
-\item{pretest}{Pretest score}
+\item{covariates}{Simulated covariates}
 \item{posttest}{Posttest score (NA if participant attrited)}
 }
 }
@@ -52,9 +49,17 @@ This function simulates a Simple Randomized Trial (SRT), with multiple intervent
 pre-test and post-test scores, and individual-level attrition. No clustering or hierarchical structure is assumed.
 }
 \examples{
-srtdata <- srtDataSimulation(ni = 2, np = 300, tpi = c(40, 30, 30),
-sigma = 1, sigmaPret = 1, B0 = 0, B1 = 0.6, es = c(0.2, 0.3), 
-seed = 101, attritionrates = c(0.1, 0.05, 0.05))
+covariates <- list(
+ list(name = "pretest", type = "continuous", sd = 1, coefficient = 1.7),
+ list(name = "gender", type = "categorical", levels = c("Male", "Female"),
+ probs = c(0.3, 0.7), reference = "Male", coefficients = list(B = -0.5)),
+ list(name = "ethnicity", type = "categorical", levels = c("White", "Black", "Asian"),
+ probs = c(0.3, 0.3, 0.4), reference = "White", coefficients = list(B = 1.02, C = 1.3))
+)
+
+srtdata <- srtDataSimulation(ni = 3, np = 1000, tpi = c(30, 30, 20, 20),
+sigma = 1, B0 = 1.45,  es = c(0.2, 0.3, 0.1), seed = 1234,
+attritionrates = c(0.1, 0.1, 0.1, 0), covariates = covariates) 
 head(srtdata)
 
 }

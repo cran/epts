@@ -12,7 +12,8 @@
 #' @param refintervention The value of the intervention used as the reference group (default = 1).
 #' @param Threshold The effect size threshold for posterior computation (default = 0.05).
 #' @param SupThreshold The minimum posterior probability threshold to declare superiority (default = 0.8).
-#' @param covariates Additional covariates to include in the model. It should be specified as a character vector.
+#' @param continuous_covariates A character vector specifying the names of continuous covariates.
+#' @param categorical_covariates A character vector specifying the names of categorical covariates (converted to factors).
 #'
 #' @return A `data.frame` with columns:
 #' \itemize{
@@ -22,33 +23,37 @@
 #' }
 #'
 #' @details
-#' For each intervention (excluding the control), the function estimates posterior probability
-#' with the reference intervention as control group and compare it to the superiority threshold.
 #' The effect size is estimated against a reference intervention, which by default is intervention 1 but can be reassigned to any other intervention, including the control (refintervention = 0).
 #' @seealso  \code{\link[eefAnalytics]{crtBayes}}, \code{\link[eefAnalytics]{mstBayes}}, \code{\link[eefAnalytics]{srtBayes}} functions from the \pkg{eefAnalytics} package
 #'  
 #' @examples
 #' \donttest{
-#' ###Futility analysis of cluster randomized trial###
+#' ###Superiority analysis of cluster randomized trial###
 #' data(crt4armSimData)
 #' superiorityAnalysis(method = "crt", data = crt4armSimData, outcome = "posttest",
-#' interventions = "interventions", Random = "schools", Nsim = 10000, refintervention = 1,
-#' Threshold = 0.05, SupThreshold = 0.8)
-#'
-#' ###Futility analysis of multisite trial###
+#' interventions = "interventions", Random = "schools", Nsim = 10000, refintervention = 2,
+#' Threshold = 0.05, SupThreshold = 0.8,continuous_covariates = c("pretest"),
+#' categorical_covariates = c("gender", "ethnicity"))
+#' 
+#' ###Superiority analysis of multisite trial###
 #' data(mst4armSimData)
 #' superiorityAnalysis(method = "mst", data = mst4armSimData, outcome = "posttest",
-#' interventions = "interventions", Random = "schools", Nsim = 10000, refintervention = 1,
-#' Threshold = 0.05, SupThreshold = 0.8)
-#'
-#' ###Futility analysis of simple randomized trial###
+#' interventions = "interventions", Random = "schools", Nsim = 10000, refintervention = 2,
+#' Threshold = 0.05, SupThreshold = 0.8,continuous_covariates = c("pretest"),
+#' categorical_covariates = c("gender", "ethnicity"))
+#' 
+#' ###Superiority analysis of simple randomized trial###
 #' data(srt4armSimData)
 #' superiorityAnalysis(method = "srt", data = srt4armSimData, outcome = "posttest",
-#' interventions = "interventions", Nsim = 10000, refintervention = 1,
-#' Threshold = 0.05, SupThreshold = 0.8)
+#' interventions = "interventions", Nsim = 10000, refintervention = 2,
+#' Threshold = 0.05, SupThreshold = 0.8,continuous_covariates = c("pretest"),
+#' categorical_covariates = c("gender", "ethnicity"))
+#' 
 #'}
 #'
 #' @importFrom eefAnalytics crtBayes mstBayes srtBayes
+#' @importFrom dplyr filter
+#' @importFrom magrittr %>%
 #' @export
 superiorityAnalysis <- function(method = c("crt", "mst", "srt"),
                                 data,
@@ -59,13 +64,23 @@ superiorityAnalysis <- function(method = c("crt", "mst", "srt"),
                                 Threshold = 0.05,
                                 refintervention = 1,
                                 SupThreshold = 0.8,
-                                covariates = NULL
+                                continuous_covariates = NULL, categorical_covariates = NULL
 ) {
   method <- match.arg(method)
   
-  # Get unique intervention_col excluding 0 and reference
+  
+  # Convert categorical covariates to factors
+  if (!is.null(categorical_covariates)) {
+    for (cat in categorical_covariates) {
+      data[[cat]] <- as.factor(data[[cat]])
+    }
+  }
+  covariates <- c(continuous_covariates, categorical_covariates)
+  
+  
+  # Get unique intervention_col excluding the control group (0)
   intervention_col <- sort(unique(data[[interventions]]))
-  intervention_col <- intervention_col[intervention_col != 0 & intervention_col != refintervention]
+  intervention_col <- intervention_col[intervention_col != 0 & intervention_col != refintervention]  # Exclude control and reference intervention
   
   output <- list()
   prob_es_values <- numeric(length(intervention_col))
@@ -74,11 +89,19 @@ superiorityAnalysis <- function(method = c("crt", "mst", "srt"),
   for (i in seq_along(intervention_col)) {
     intervention <- intervention_col[i]
     
-    # Subset for current intervention and reference
-    intervention_data <- data[data[[interventions]] %in% c(intervention, 0), ]
+    # Subset data for the current intervention and reference intervention
+    intervention_data <- data %>%
+      filter(.data[[interventions]] == intervention | .data[[interventions]] == refintervention)
     intervention_data[[interventions]] <- ifelse(intervention_data[[interventions]] == intervention, 1, 0)
     
-    # Build formula
+    # Ensure factors in subset too
+    if (!is.null(categorical_covariates)) {
+      for (cat in categorical_covariates) {
+        intervention_data[[cat]] <- as.factor(intervention_data[[cat]])
+      }
+    }
+    
+    # Build the formula
     formula_str <- if (is.null(covariates) || length(covariates) == 0) {
       paste(outcome, "~", interventions)
     } else {

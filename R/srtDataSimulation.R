@@ -7,29 +7,46 @@
 #' @param tpi The proportions (in percent) assigned to each group, with the first value for the control group followed by the intervention groups. Must sum to 100. It should be specified as a numeric vector of length ni + 1.
 #' @param np The total number of participants.
 #' @param sigma The standard deviation of individual-level error for the post-test score.
-#' @param sigmaPret The standard deviation of the pretest scores.
 #' @param B0 The intercept term in the model.
-#' @param B1 The coefficient for the pretest in the model.
 #' @param es The standardized effect sizes for each intervention group. It should be specified as a numeric vector.
 #' @param seed The random seed for reproducibility.
 #' @param attritionrates The attrition rates for each group, including the control group. It should be specified as a numeric vector of length ni + 1.
-#'
+#' @param covariates List of covariate specifications. Each element should be a list with the following fields:
+#'   \describe{
+#'     \item{name}{Character. Name of the covariate.}
+#'     \item{type}{Character. Either \code{"continuous"} or \code{"categorical"}.}
+#'     \item{sd}{Numeric. Standard deviation (only for continuous covariates).}
+#'     \item{coefficient}{Numeric. Coefficient (only for continuous covariates).}
+#'     \item{levels}{Character vector. Category levels (only for categorical covariates).}
+#'     \item{probs}{Numeric vector. Sampling probabilities (must sum to 1) (categorical only).}
+#'     \item{reference}{Character. Reference category (categorical only).}
+#'     \item{coefficients}{Named list of numeric values. Coefficients for each non-reference level.}
+#'   }
+#'   
 #' @return A `data.frame` containing:
 #' \describe{
 #'   \item{ID}{Participant ID}
 #'   \item{interventions}{Intervention assignment (0 = control, 1 to `ni` = intervention groups)}
-#'   \item{pretest}{Pretest score}
+#'   \item{covariates}{Simulated covariates}
 #'   \item{posttest}{Posttest score (NA if participant attrited)}
 #' }
 #'
 #' @examples
-#' srtdata <- srtDataSimulation(ni = 2, np = 300, tpi = c(40, 30, 30),
-#' sigma = 1, sigmaPret = 1, B0 = 0, B1 = 0.6, es = c(0.2, 0.3), 
-#' seed = 101, attritionrates = c(0.1, 0.05, 0.05))
+#'covariates <- list(
+#'  list(name = "pretest", type = "continuous", sd = 1, coefficient = 1.7),
+#'  list(name = "gender", type = "categorical", levels = c("Male", "Female"),
+#'  probs = c(0.3, 0.7), reference = "Male", coefficients = list(B = -0.5)),
+#'  list(name = "ethnicity", type = "categorical", levels = c("White", "Black", "Asian"),
+#'  probs = c(0.3, 0.3, 0.4), reference = "White", coefficients = list(B = 1.02, C = 1.3))
+#')
+#'
+#' srtdata <- srtDataSimulation(ni = 3, np = 1000, tpi = c(30, 30, 20, 20),
+#' sigma = 1, B0 = 1.45,  es = c(0.2, 0.3, 0.1), seed = 1234,
+#' attritionrates = c(0.1, 0.1, 0.1, 0), covariates = covariates) 
 #' head(srtdata)
 #'
 #' @export
-srtDataSimulation <- function(ni, np, tpi, sigma, sigmaPret, B0, B1, es, seed, attritionrates) {
+srtDataSimulation <- function(ni, tpi, np, sigma, B0, es, seed, attritionrates, covariates) {
   # Error checking: ensure tpi has length ni + 1 (control + treatment groups)
   if (length(tpi) != ni + 1) {
     stop("Error: 'tpi' must have length ni + 1 (first value for control group, remaining for treatment groups).")
@@ -61,28 +78,48 @@ srtDataSimulation <- function(ni, np, tpi, sigma, sigmaPret, B0, B1, es, seed, a
   data[[interventions]] <- 0
   
   # Step 2: Assign control group based on tpi[1] (control percentage)
-  control_size <- floor(np * (tpi[1] / 100))
+  control_size <- round(np * (tpi[1] / 100))
   control_pupils <- sample(1:np, control_size)
   data[[interventions]][control_pupils] <- 0  # Assign control group (0)
   
-  # Step 3: Assign treatment groups to the remaining participants
+  # Step 3: Assign treatment groups
   remaining_pupils <- setdiff(1:np, control_pupils)
+  remaining_n <- length(remaining_pupils)
   
-  # Calculate the number of participants for each treatment group except the last one
-  treatment_sizes <- floor(np * (tpi[2:(ni+1)] / 100))
-  
-  # Adjust the last treatment group to take the remaining participants
-  treatment_sizes[ni] <- length(remaining_pupils) - sum(treatment_sizes[1:(ni-1)])
-  
-  for (i in 1:ni) {
-    treated_pupils <- sample(remaining_pupils, treatment_sizes[i])
-    data[[interventions]][treated_pupils] <- i  # Assign treatment group i to selected participants
-    remaining_pupils <- setdiff(remaining_pupils, treated_pupils)  # Remove assigned participants
+  if (ni == 1) {
+    # Only one treatment group: assign everyone left
+    data[[interventions]][remaining_pupils] <- 1
+  } else {
+    # Multiple treatment groups
+    treatment_props <- tpi[2:(ni+1)] / sum(tpi[2:(ni+1)])  # Normalize proportions
+    treatment_sizes <- round(remaining_n * treatment_props)
+    
+    # Adjust last group to take any rounding error
+    treatment_sizes[ni] <- remaining_n - sum(treatment_sizes[1:(ni-1)])
+    
+    for (i in 1:ni) {
+      treated_pupils <- sample(remaining_pupils, treatment_sizes[i])
+      data[[interventions]][treated_pupils] <- i
+      remaining_pupils <- setdiff(remaining_pupils, treated_pupils)
+    }
   }
   
-  # Step 4: Generate pre-test scores for everyone
-  prets <- "pretest"
-  data[[prets]] <- rnorm(nrow(data), mean = 0, sd = sigmaPret)
+  for (cov in covariates) {
+    if (cov$type == "continuous") {
+      data[[cov$name]] <- rnorm(nrow(data), mean = 0, sd = cov$sd)
+    } else {
+      data[[cov$name]] <- sample(cov$levels, nrow(data), replace = TRUE, prob = cov$probs)
+    }
+  }
+  
+  # Convert categorical covariates to numeric (0 = reference)
+  for (cov in covariates) {
+    if (cov$type == "categorical") {
+      levels_ordered <- c(cov$reference, setdiff(cov$levels, cov$reference))
+      data[[cov$name]] <- match(data[[cov$name]], levels_ordered) - 1
+    }
+  }
+  
   
   # Initialize post-test scores
   posts <- "posttest"
@@ -104,31 +141,55 @@ srtDataSimulation <- function(ni, np, tpi, sigma, sigmaPret, B0, B1, es, seed, a
   }
   
   # Step 6: Generate post-test scores for non-attrited participants
-  # Create treatment matrix
-  treatment_matrix <- model.matrix(~ factor(data[non_attrition_idx, interventions]) - 1)
   
-  # Remove the first column (control group is baseline)
-  if (ncol(treatment_matrix) > 1) {
-    treatment_matrix <- treatment_matrix[, -1, drop = FALSE]
+  # Check how many unique intervention groups remain after attrition
+  unique_interventions <- unique(data[non_attrition_idx, interventions])
+  
+  if (length(unique_interventions) > 1) {
+    # Create treatment matrix with dummy variables (no intercept)
+    treatment_matrix <- model.matrix(~ factor(data[non_attrition_idx, interventions]) - 1)
+    
+    # Remove the first column (control group is baseline)
+    if (ncol(treatment_matrix) >= 1) {
+      treatment_matrix <- treatment_matrix[, -1, drop = FALSE]
+    }
+    
+    if (is.null(dim(treatment_matrix))) {
+      treatment_matrix <- matrix(treatment_matrix, ncol = 1)
+    }
+    
+    # Apply treatment effects using only individual-level variance (sigma)
+    treatment_effects <- sweep(treatment_matrix, 2, es * sigma, `*`)
+    
+    # Calculate the total treatment effect
+    total_treatment_effect <- rowSums(treatment_effects)
+  } else {
+    # No treatment groups left after attrition
+    total_treatment_effect <- rep(0, length(non_attrition_idx))
   }
-  
-  # Apply treatment effects using only individual-level variance (sigma)
-  treatment_effects <- sweep(treatment_matrix, 2, es * sigma, `*`)
-  
-  # Calculate the total treatment effect by summing the contributions of each treatment group
-  total_treatment_effect <- rowSums(treatment_effects)
   
   # Generate individual-level errors for non-attrited individuals
   e_ij <- rnorm(length(non_attrition_idx), mean = 0, sd = sigma)
   
+  cov_effects <- rep(0, nrow(data))
+  if (length(covariates) > 0) {
+    for (cov in covariates) {
+      if (cov$type == "continuous") {
+        cov_effects <- cov_effects + cov$coefficient * data[[cov$name]]
+      } else {
+        for (lvl in cov$levels) {
+          if (lvl != cov$reference) {
+            cov_effects <- cov_effects + ifelse(data[[cov$name]] == lvl, cov$coefficients[[lvl]], 0)
+          }
+        }
+      }
+    }
+  }
+  
   # Compute post-test scores
   data[non_attrition_idx, posts] <- B0 + 
-    B1 * data[non_attrition_idx, prets] + 
+    cov_effects[non_attrition_idx] + 
     total_treatment_effect + 
     e_ij
-  
-  # Only keep relevant columns (ID, interventions, pret, post)
-  data <- data[, c("ID", interventions, prets, posts)]
-  
   return(data)
 }

@@ -10,7 +10,8 @@
 #' @param interventions A string specifying the intervention variable.
 #' @param Random The name of the clustering variable (e.g., schools or sites) for CRT and MST designs.
 #' @param Nsim Number of MCMC iterations to be performed. A minimum of 10,000 is recommended to ensure convergence.
-#' @param covariates Additional covariates names to include in the model. It should be specified as a character vector.
+#' @param continuous_covariates A character vector specifying the names of continuous covariates.
+#' @param categorical_covariates A character vector specifying the names of categorical covariates (converted to factors).
 #' @param threshold_range The range of thresholds to evaluate. It should be specified as a numeric vector of length 2 (default = c(0, 1.0)).
 #' @param VerticalLine Optional vertical reference line added at a threshold value. It should be specified as a numeric value.
 #' @param VerticalLineColor The color of the vertical reference line. It should be specified as a character string (default = "#0000FF").
@@ -38,6 +39,7 @@
 #' data(crt4armSimData)
 #' plotPosteriorProbs(method = "crt",data = crt4armSimData, outcome = "posttest",
 #' interventions = "interventions", Random = "schools", Nsim = 10000,
+#' continuous_covariates = c("pretest"), categorical_covariates = c("gender", "ethnicity"),
 #' threshold_range = c(0, 0.1), VerticalLine = 0.05, HorizontalLine = 0.8,
 #' VerticalLineColor= "purple", HorizontalLineColor= "black", 
 #' intlabels = c("Intervention A", "Intervention B", "Intervention C"), 
@@ -50,6 +52,7 @@
 #' data(mst4armSimData)
 #' plotPosteriorProbs(method = "ms",data = mst4armSimData, outcome = "posttest", 
 #' interventions = "interventions", Random = "schools", Nsim = 10000,
+#' continuous_covariates = c("pretest"), categorical_covariates = c("gender", "ethnicity"),
 #' threshold_range = c(0, 0.1), VerticalLine = 0.05, HorizontalLine = 0.8, 
 #' VerticalLineColor= "purple", HorizontalLineColor= "black",
 #' intlabels = c("Intervention A", "Intervention B", "Intervention C"), 
@@ -62,6 +65,7 @@
 #' data(srt4armSimData)
 #' plotPosteriorProbs(method = "srt",data = srt4armSimData, outcome = "posttest",
 #' interventions = "interventions", Nsim = 10000, threshold_range = c(0, 0.2),
+#' continuous_covariates = c("pretest"), categorical_covariates = c("gender", "ethnicity"),
 #' VerticalLine = 0.05, HorizontalLine = 0.8, VerticalLineColor= "purple",
 #' HorizontalLineColor= "black", intlabels = c("Intervention A", "Intervention B",
 #' "Intervention C"), intcolors = c("Intervention A" = "#1F77B4", 
@@ -85,7 +89,7 @@ plotPosteriorProbs <- function(method = c("crt", "mst", "srt"),
     interventions = "interventions", 
     Random = "schools", 
     Nsim = 10000, 
-    covariates = NULL, 
+    continuous_covariates = NULL, categorical_covariates = NULL, 
     VerticalLine = NULL, 
     VerticalLineColor = "#0000FF", 
     HorizontalLine = NULL, 
@@ -100,6 +104,14 @@ plotPosteriorProbs <- function(method = c("crt", "mst", "srt"),
     ybreaks = seq(0, 1, by = 0.1)
 ) {
   method <- match.arg(method)
+  
+  # Convert categorical covariates to factors
+  if (!is.null(categorical_covariates)) {
+    for (cat in categorical_covariates) {
+      data[[cat]] <- as.factor(data[[cat]])
+    }
+  }
+  covariates <- c(continuous_covariates, categorical_covariates)
   
   if (method == "srt" && (is.null(covariates) || length(covariates) == 0)) {
     data$zero_covariate <- 0
@@ -116,6 +128,13 @@ plotPosteriorProbs <- function(method = c("crt", "mst", "srt"),
       intervention <- intervention_col[i]
       intervention_data <- data[data[[interventions]] %in% c(intervention, 0), ]
       intervention_data[[interventions]] <- ifelse(intervention_data[[interventions]] == intervention, 1, 0)
+      
+      # Apply factor conversion again for safety
+      if (!is.null(categorical_covariates)) {
+        for (cat in categorical_covariates) {
+          intervention_data[[cat]] <- as.factor(intervention_data[[cat]])
+        }
+      }
       
       formula_str <- paste(outcome, "~", interventions)
       if (!is.null(covariates)) {

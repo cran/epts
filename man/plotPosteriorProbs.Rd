@@ -11,7 +11,8 @@ plotPosteriorProbs(
   interventions = "interventions",
   Random = "schools",
   Nsim = 10000,
-  covariates = NULL,
+  continuous_covariates = NULL,
+  categorical_covariates = NULL,
   VerticalLine = NULL,
   VerticalLineColor = "#0000FF",
   HorizontalLine = NULL,
@@ -39,7 +40,9 @@ plotPosteriorProbs(
 
 \item{Nsim}{Number of MCMC iterations to be performed. A minimum of 10,000 is recommended to ensure convergence.}
 
-\item{covariates}{Additional covariates names to include in the model. It should be specified as a character vector.}
+\item{continuous_covariates}{A character vector specifying the names of continuous covariates.}
+
+\item{categorical_covariates}{A character vector specifying the names of categorical covariates (converted to factors).}
 
 \item{VerticalLine}{Optional vertical reference line added at a threshold value. It should be specified as a numeric value.}
 
@@ -83,6 +86,7 @@ The function uses \code{crtBayes()}, \code{mstBayes()}, or \code{srtBayes()} fro
 data(crt4armSimData)
 plotPosteriorProbs(method = "crt",data = crt4armSimData, outcome = "posttest",
 interventions = "interventions", Random = "schools", Nsim = 10000,
+continuous_covariates = c("pretest"), categorical_covariates = c("gender", "ethnicity"),
 threshold_range = c(0, 0.1), VerticalLine = 0.05, HorizontalLine = 0.8,
 VerticalLineColor= "purple", HorizontalLineColor= "black", 
 intlabels = c("Intervention A", "Intervention B", "Intervention C"), 
@@ -95,6 +99,7 @@ xbreaks= 0.1, ybreaks= seq(0, 1, by = 0.1))
 data(mst4armSimData)
 plotPosteriorProbs(method = "ms",data = mst4armSimData, outcome = "posttest", 
 interventions = "interventions", Random = "schools", Nsim = 10000,
+continuous_covariates = c("pretest"), categorical_covariates = c("gender", "ethnicity"),
 threshold_range = c(0, 0.1), VerticalLine = 0.05, HorizontalLine = 0.8, 
 VerticalLineColor= "purple", HorizontalLineColor= "black",
 intlabels = c("Intervention A", "Intervention B", "Intervention C"), 
@@ -107,6 +112,7 @@ xbreaks= 0.1, ybreaks= seq(0, 1, by = 0.1))
 data(srt4armSimData)
 plotPosteriorProbs(method = "srt",data = srt4armSimData, outcome = "posttest",
 interventions = "interventions", Nsim = 10000, threshold_range = c(0, 0.2),
+continuous_covariates = c("pretest"), categorical_covariates = c("gender", "ethnicity"),
 VerticalLine = 0.05, HorizontalLine = 0.8, VerticalLineColor= "purple",
 HorizontalLineColor= "black", intlabels = c("Intervention A", "Intervention B",
 "Intervention C"), intcolors = c("Intervention A" = "#1F77B4", 

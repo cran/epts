@@ -15,7 +15,8 @@ mstAddIntervention(
   interventions,
   schoolsID,
   pupilsID,
-  covariates
+  continuous_covariates,
+  categorical_covariates
 )
 }
 \arguments{
@@ -39,7 +40,9 @@ mstAddIntervention(
 
 \item{pupilsID}{A string specifying the name of the pupil ID column.}
 
-\item{covariates}{The names of additional covariates (both categorical and continuous) used in the model.}
+\item{continuous_covariates}{A character vector specifying the names of continuous covariates.}
+
+\item{categorical_covariates}{A character vector specifying the names of categorical covariates (converted to factors).}
 }
 \value{
 A \code{data.frame} containing the combined dataset with the newly added intervention group and simulated outcomes.
@@ -61,7 +64,8 @@ The function:
 data(mst4armSimData)
 new_mst5armData <- mstAddIntervention(originalData = mst4armSimData, ns = 2, np = 100, es = 0.3,
 intper = 0.5, attritionrate = 0.1, outcome = "posttest", interventions = "interventions",
-schoolsID = "schools", pupilsID = "pupils", covariates = c("pretest"))
+schoolsID = "schools", pupilsID = "pupils", 
+continuous_covariates = c("pretest"), categorical_covariates = c("gender", "ethnicity"))
 head(new_mst5armData)
 
 }

@@ -20,7 +20,8 @@
 #' @param nPerm The number of permutations required to generate a permutated p-value.
 #' @param nBoot The number of bootstraps required to generate bootstrap confidence intervals.
 #' @param bootType method of bootstrapping including case re-sampling at student level "case(1)",case re-sampling at school level "case(2)", case re-sampling at both levels "case(1,2)" and residual bootstrapping using "residual". If not provided, default will be case re-sampling at student level.
-#' @param covariates Additional covariates include in the model. It should be specified as a character vector.
+#' @param continuous_covariates A character vector specifying the names of continuous covariates.
+#' @param categorical_covariates A character vector specifying the names of categorical covariates (converted to factors).
 #' @param intlabels Optional custom intervention labels for the plot.
 #' @param intcolors Optional intervention colors for the plot. 
 #' @param maintitle main title for the plot. 
@@ -43,7 +44,8 @@
 #' data(crt4armSimData)
 #' multiArmAnalysis(method = "crtBayes", data = crt4armSimData, outcome = "posttest", 
 #' interventions = "interventions", Random = "schools", Nsim = 10000, Threshold = 0.05, 
-#' covariates = c("pretest"), intlabels = c("Intervention A", "Intervention B", "Intervention C"),
+#' continuous_covariates = c("pretest"), categorical_covariates = c("gender", "ethnicity"),
+#' intlabels = c("Intervention A", "Intervention B", "Intervention C"),
 #  intcolors = c("Intervention A" = "blue", "Intervention B" = "green", "Intervention C" = "red"),
 #' maintitle = "Forest plot of comparison of effect sizes", xlabel = "Hedges'g", 
 #' ylabel = "Interventions", vlinecolor = "black")
@@ -52,7 +54,8 @@
 #' data(mst4armSimData)
 #' multiArmAnalysis(method = "mstFREQ", data = mst4armSimData, outcome = "posttest",
 #' interventions = "interventions", Random = "schools", nBoot = 1000, bootType="residual",
-#' covariates = c("pretest"), intlabels = c("Intervention A", "Intervention B", "Intervention C"),
+#' continuous_covariates = c("pretest"), categorical_covariates = c("gender", "ethnicity"),
+#' intlabels = c("Intervention A", "Intervention B", "Intervention C"),
 #' intcolors = c("Intervention A" = "blue", "Intervention B" = "green", "Intervention C" = "red"),
 #' maintitle = "Forest plot of comparison of effect sizes ", xlabel = "Hedges'g",
 #' ylabel = "Interventions", vlinecolor = "black")
@@ -60,7 +63,8 @@
 #' ###MLM analysis of multisite trials with permutation p-value###
 #' data(mst4armSimData)
 #' multiArmAnalysis(method = "mstFREQ", data = mst4armSimData, outcome = "posttest", 
-#' interventions = "interventions", Random = "schools", nPerm = 1000, covariates = c("pretest"), 
+#' interventions = "interventions", Random = "schools", nPerm = 1000, 
+#' continuous_covariates = c("pretest"), categorical_covariates = c("gender", "ethnicity"), 
 #' intlabels = c("Intervention A", "Intervention B", "Intervention C"),
 #' intcolors = c("Intervention A" = "blue", "Intervention B" = "green", "Intervention C" = "red"), 
 #' maintitle = "Forest plot of comparison of effect sizes ",
@@ -71,7 +75,8 @@
 #' data(srt4armSimData)
 #' multiArmAnalysis(method = "srtBayes", data = srt4armSimData, outcome = "posttest",
 #' interventions = "interventions", Random = "schools", Nsim = 10000, Threshold = 0.05, 
-#' covariates = c("pretest"), intlabels = c("Int A", "Int B", "Int C"),
+#' continuous_covariates = c("pretest"), categorical_covariates = c("gender", "ethnicity"),
+#' intlabels = c("Int A", "Int B", "Int C"),
 #' intcolors = c("Int A" = "#1F77B4", "Int B" = "#2CA02C", "Int C" = "#D62728"),
 #' maintitle = "Forest plot of comparison of effect sizes ", xlabel = "Hedges'g", 
 #' ylabel = "Interventions", vlinecolor = "black")
@@ -93,7 +98,7 @@ multiArmAnalysis <- function(
     nPerm = NULL, 
     nBoot = NULL, 
     bootType = NULL, 
-    covariates = NULL, 
+    continuous_covariates = NULL, categorical_covariates = NULL, 
     maintitle = NULL,
     xlabel = NULL,
     ylabel = NULL,
@@ -102,12 +107,14 @@ multiArmAnalysis <- function(
     intcolors = NULL
 ) {
   
-  # Construct formula
-  if (is.null(covariates) || length(covariates) == 0) {
-    formula_str <- paste(outcome, "~", interventions)
-  } else {
-    formula_str <- paste(outcome, "~", interventions, "+", paste(covariates, collapse = " + "))
+  # Convert categorical covariates to factors
+  if (!is.null(categorical_covariates)) {
+    for (cat in categorical_covariates) {
+      data[[cat]] <- as.factor(data[[cat]])
+    }
   }
+  
+  covariates <- c(continuous_covariates, categorical_covariates)
   
   # Get unique interventions excluding control (0)
   intervention_col <- sort(unique(data[[interventions]][data[[interventions]] != 0]))
@@ -121,6 +128,14 @@ multiArmAnalysis <- function(
     
     # Binary indicator: 1 for intervention, 0 for control
     intervention_data[[interventions]] <- ifelse(intervention_data[[interventions]] == intervention, 1, 0)
+    
+    # Convert again after subsetting
+    if (!is.null(categorical_covariates)) {
+      for (cat in categorical_covariates) {
+        intervention_data[[cat]] <- as.factor(intervention_data[[cat]])
+      }
+    }
+    
     
     # Update formula in case of different covariates
     formula_str <- paste(outcome, "~", interventions)

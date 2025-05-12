@@ -14,7 +14,8 @@ superiorityAnalysis(
   Threshold = 0.05,
   refintervention = 1,
   SupThreshold = 0.8,
-  covariates = NULL
+  continuous_covariates = NULL,
+  categorical_covariates = NULL
 )
 }
 \arguments{
@@ -36,7 +37,9 @@ superiorityAnalysis(
 
 \item{SupThreshold}{The minimum posterior probability threshold to declare superiority (default = 0.8).}
 
-\item{covariates}{Additional covariates to include in the model. It should be specified as a character vector.}
+\item{continuous_covariates}{A character vector specifying the names of continuous covariates.}
+
+\item{categorical_covariates}{A character vector specifying the names of categorical covariates (converted to factors).}
 }
 \value{
 A \code{data.frame} with columns:
@@ -51,29 +54,31 @@ This function performs a Bayesian superiority analysis, comparing each intervent
 intervention, across cluster randomized trials (CRT), multisite trials (MST) or simple randomized trials (SRT).
 }
 \details{
-For each intervention (excluding the control), the function estimates posterior probability
-with the reference intervention as control group and compare it to the superiority threshold.
 The effect size is estimated against a reference intervention, which by default is intervention 1 but can be reassigned to any other intervention, including the control (refintervention = 0).
 }
 \examples{
 \donttest{
-###Futility analysis of cluster randomized trial###
+###Superiority analysis of cluster randomized trial###
 data(crt4armSimData)
 superiorityAnalysis(method = "crt", data = crt4armSimData, outcome = "posttest",
-interventions = "interventions", Random = "schools", Nsim = 10000, refintervention = 1,
-Threshold = 0.05, SupThreshold = 0.8)
+interventions = "interventions", Random = "schools", Nsim = 10000, refintervention = 2,
+Threshold = 0.05, SupThreshold = 0.8,continuous_covariates = c("pretest"),
+categorical_covariates = c("gender", "ethnicity"))
 
-###Futility analysis of multisite trial###
+###Superiority analysis of multisite trial###
 data(mst4armSimData)
 superiorityAnalysis(method = "mst", data = mst4armSimData, outcome = "posttest",
-interventions = "interventions", Random = "schools", Nsim = 10000, refintervention = 1,
-Threshold = 0.05, SupThreshold = 0.8)
+interventions = "interventions", Random = "schools", Nsim = 10000, refintervention = 2,
+Threshold = 0.05, SupThreshold = 0.8,continuous_covariates = c("pretest"),
+categorical_covariates = c("gender", "ethnicity"))
 
-###Futility analysis of simple randomized trial###
+###Superiority analysis of simple randomized trial###
 data(srt4armSimData)
 superiorityAnalysis(method = "srt", data = srt4armSimData, outcome = "posttest",
-interventions = "interventions", Nsim = 10000, refintervention = 1,
-Threshold = 0.05, SupThreshold = 0.8)
+interventions = "interventions", Nsim = 10000, refintervention = 2,
+Threshold = 0.05, SupThreshold = 0.8,continuous_covariates = c("pretest"),
+categorical_covariates = c("gender", "ethnicity"))
+
 }
 
 }
