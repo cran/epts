@@ -11,7 +11,7 @@ A data frame with 1,000 rows and 6 variables:
 \item{interventions}{Treatment assignment coded as 0 for control and 1–3 for intervention groups}
 \item{pretest}{Pre-test scores}
 \item{gender}{Binary gender}
-\item{ethnicity}{Ethnicity (3-level categorical)}
+\item{ethnicity}{A categorical variable with 3 categories}
 \item{posttest}{Post-test scores}
 }
 }

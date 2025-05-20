@@ -10,7 +10,7 @@
 #'   \item{interventions}{Treatment assignment coded as 0 for control and 1–3 for intervention groups}
 #'   \item{pretest}{Pre-test scores}
 #'   \item{gender}{Binary gender}
-#'   \item{ethnicity}{Ethnicity (3-level categorical)}
+#'   \item{ethnicity}{A categorical variable with 3 categories}
 #'   \item{posttest}{Post-test scores}
 #' }
 #' @source Simulated
